@@ -1,0 +1,1062 @@
+{
+  "id": "clinicaSorrisoWhatsappAgent01",
+  "name": "Clinica Sorriso Feliz - WhatsApp AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clinica-sorriso-feliz/evolution/whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "evolution-webhook",
+      "name": "Evolution Webhook - Incoming WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        0
+      ],
+      "webhookId": "clinica-sorriso-feliz-evolution-whatsapp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body ?? $json;\nconst data = payload.data ?? payload;\nconst key = data.key ?? payload.key ?? {};\nconst message = data.message ?? payload.message ?? {};\nconst text = message.conversation\n  ?? message.extendedTextMessage?.text\n  ?? message.imageMessage?.caption\n  ?? message.videoMessage?.caption\n  ?? data.messageText\n  ?? payload.messageText\n  ?? '';\nconst remoteJid = key.remoteJid ?? data.remoteJid ?? payload.remoteJid ?? '';\nconst phoneDigits = remoteJid.split('@')[0].replace(/\\D/g, '');\nconst phone = phoneDigits ? `+${phoneDigits}` : '';\nconst messageType = Object.keys(message)[0] ?? data.messageType ?? 'text';\nconst fromMe = Boolean(key.fromMe ?? data.fromMe ?? payload.fromMe ?? false);\nconst instance = payload.instance ?? data.instance ?? $env.EVOLUTION_INSTANCE_NAME;\n\nreturn [{\n  json: {\n    raw_event: payload,\n    n8n_execution_id: $execution.id,\n    received_at: new Date().toISOString(),\n    evolution_instance_id: instance,\n    whatsapp_remote_jid: remoteJid,\n    evolution_message_id: key.id ?? data.id ?? payload.id ?? null,\n    patient_phone_e164: phone,\n    patient_name: data.pushName ?? payload.pushName ?? data.contact?.name ?? null,\n    message_text: text.trim(),\n    message_type: messageType,\n    media_url: data.mediaUrl ?? payload.mediaUrl ?? null,\n    media_mime_type: data.mimetype ?? payload.mimetype ?? null,\n    sent_at: data.messageTimestamp\n      ? new Date(Number(data.messageTimestamp) * 1000).toISOString()\n      : new Date().toISOString(),\n    is_from_bot: fromMe,\n    should_process: !fromMe && remoteJid !== '' && (text.trim() !== '' || data.mediaUrl || payload.mediaUrl)\n  }\n}];"
+      },
+      "id": "normalize-incoming-message",
+      "name": "Normalize Incoming Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-ignore",
+              "leftValue": "={{ $json.should_process }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ignore-bot-or-empty-message",
+      "name": "IF - Ignore Bot or Empty Message",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, ignored: true, reason: $json.is_from_bot ? 'message_sent_by_bot' : 'empty_or_invalid_message' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ignored",
+      "name": "Respond - Ignored Message",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/conversations?select=*&evolution_instance_id=eq.' + encodeURIComponent($json.evolution_instance_id) + '&whatsapp_remote_jid=eq.' + encodeURIComponent($json.whatsapp_remote_jid) + '&status=in.(em_andamento,aguardando_humano)&order=created_at.desc&limit=1' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {}
+          },
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "get-active-conversation",
+      "name": "Supabase - Get Active Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -560,
+        100
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const incoming = $('Normalize Incoming Message').first().json;\nconst result = $input.first().json;\nconst rows = Array.isArray(result)\n  ? result\n  : (Array.isArray(result.data) ? result.data : (result.id ? [result] : []));\nconst conversation = rows[0] ?? null;\nreturn [{ json: { ...incoming, conversation, has_conversation: Boolean(conversation?.id) } }];"
+      },
+      "id": "resolve-conversation-state",
+      "name": "Resolve Conversation State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-conversation",
+              "leftValue": "={{ $json.has_conversation }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-conversation-exists",
+      "name": "IF - Conversation Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const conversation = $json.conversation;\nreturn [{ json: { ...$json, conversation_id: conversation.id, conversation_status: conversation.status, conversation_intent: conversation.intent } }];"
+      },
+      "id": "use-existing-conversation",
+      "name": "Use Existing Conversation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/conversations' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  evolution_instance_id: $json.evolution_instance_id,\n  whatsapp_remote_jid: $json.whatsapp_remote_jid,\n  patient_phone_e164: $json.patient_phone_e164,\n  patient_name: $json.patient_name,\n  status: 'em_andamento',\n  started_at: $json.sent_at\n} }}",
+        "options": {
+          "timeout": 10000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "create-conversation",
+      "name": "Supabase - Create Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const incoming = $('Resolve Conversation State').first().json;\nconst result = $input.first().json;\nconst row = Array.isArray(result) ? result[0] : result;\nreturn [{ json: { ...incoming, conversation: row, conversation_id: row.id, conversation_status: row.status, conversation_intent: row.intent } }];"
+      },
+      "id": "use-created-conversation",
+      "name": "Use Created Conversation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/messages?select=sender,direction,body,intent,sent_at&conversation_id=eq.' + $json.conversation_id + '&order=sent_at.desc&limit=' + ($env.MEMORY_MESSAGE_LIMIT || 12) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "get-conversation-history",
+      "name": "Supabase - Get Conversation History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        100
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "let current;\ntry {\n  current = $('Use Existing Conversation').first().json;\n} catch (error) {\n  current = $('Use Created Conversation').first().json;\n}\nconst result = $input.first().json;\nconst rawRows = Array.isArray(result)\n  ? result\n  : (Array.isArray(result.data) ? result.data : (result.sender ? [result] : []));\nconst historyRows = rawRows.reverse();\nconst historyText = historyRows\n  .map((m) => `${m.sender}/${m.direction}: ${m.body ?? ''}`)\n  .filter((line) => line.trim().length > 0)\n  .join('\\n');\nconst clinicContext = `Clinic: Clinica Sorriso Feliz\\nRole: You are a WhatsApp assistant for a dental clinic. Be concise, polite, and helpful in Brazilian Portuguese. Do not diagnose. For pain, emergencies, medical risk, complaints, pricing negotiation, or explicit request for a person, hand off to a human.`;\nreturn [{\n  json: {\n    ...current,\n    history: historyRows,\n    memory_context: `${clinicContext}\\n\\nPrevious conversation:\\n${historyText || 'No previous messages.'}\\n\\nCurrent patient message:\\n${current.message_text}`\n  }\n}];"
+      },
+      "id": "build-memory-context",
+      "name": "Build Memory Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  contents: [{\n    role: 'user',\n    parts: [{ text: `Classify this dental clinic WhatsApp conversation. Return ONLY valid JSON with keys: intent, confidence, needs_human, handoff_reason, summary. Allowed intents: AGENDAMENTO, ORCAMENTO, DUVIDA, HUMANO. needs_human must be true for explicit human request, emergency symptoms, complaint, sensitive medical issue, uncertain answer, or anything outside clinic assistant scope.\\n\\n${$json.memory_context}` }]\n  }],\n  generationConfig: {\n    temperature: 0.1,\n    responseMimeType: 'application/json'\n  }\n} }}",
+        "options": {
+          "timeout": 20000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1500
+          }
+        }
+      },
+      "id": "gemini-classify-intent",
+      "name": "Gemini - Classify Intent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Build Memory Context').first().json;\nconst response = $input.first().json;\nconst text = response.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (error) {\n  parsed = { intent: 'HUMANO', confidence: 0, needs_human: true, handoff_reason: 'Falha ao interpretar classificacao do Gemini.', summary: null };\n}\nconst allowed = ['AGENDAMENTO', 'ORCAMENTO', 'DUVIDA', 'HUMANO'];\nconst intent = allowed.includes(parsed.intent) ? parsed.intent : 'HUMANO';\nconst alreadyWaitingHuman = current.conversation_status === 'aguardando_humano';\nconst needsHuman = Boolean(alreadyWaitingHuman || parsed.needs_human || intent === 'HUMANO');\nreturn [{\n  json: {\n    ...current,\n    classification: parsed,\n    intent: alreadyWaitingHuman ? 'HUMANO' : intent,\n    intent_confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0))),\n    needs_human: needsHuman,\n    handoff_reason: alreadyWaitingHuman ? 'Conversa ja esta aguardando atendimento humano.' : (parsed.handoff_reason ?? (needsHuman ? 'Encaminhamento solicitado por regra de atendimento.' : null)),\n    conversation_summary: parsed.summary ?? null,\n    gemini_classification_raw: response,\n    gemini_prompt_tokens: response.usageMetadata?.promptTokenCount ?? null,\n    gemini_completion_tokens: response.usageMetadata?.candidatesTokenCount ?? null,\n    gemini_total_tokens: response.usageMetadata?.totalTokenCount ?? null\n  }\n}];"
+      },
+      "id": "parse-intent-classification",
+      "name": "Parse Intent Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  conversation_id: $json.conversation_id,\n  evolution_message_id: $json.evolution_message_id,\n  sender: 'patient',\n  direction: 'inbound',\n  body: $json.message_text || null,\n  media_url: $json.media_url,\n  media_mime_type: $json.media_mime_type,\n  message_type: $json.message_type,\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sent_at: $json.sent_at,\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    raw_event: $json.raw_event,\n    gemini_classification: $json.classification\n  }\n} }}",
+        "options": {
+          "timeout": 10000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "store-inbound-message",
+      "name": "Supabase - Store Inbound Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Parse Intent Classification').first().json;\nreturn [{ json: current }];"
+      },
+      "id": "restore-context-after-insert",
+      "name": "Restore Context After Insert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/conversations?id=eq.' + $json.conversation_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  summary: $json.conversation_summary,\n  status: $json.needs_human ? 'aguardando_humano' : 'em_andamento',\n  human_requested_at: $json.needs_human ? new Date().toISOString() : null,\n  handoff_reason: $json.needs_human ? $json.handoff_reason : null\n} }}",
+        "options": {
+          "timeout": 10000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "update-conversation-status",
+      "name": "Supabase - Update Conversation Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Restore Context After Insert').first().json;\nreturn [{ json: current }];"
+      },
+      "id": "restore-context-after-status-update",
+      "name": "Restore Context After Status Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-human",
+              "leftValue": "={{ $json.needs_human }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-human-handoff-needed",
+      "name": "IF - Human Handoff Needed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reason = $json.handoff_reason ? ` Motivo: ${$json.handoff_reason}` : '';\nreturn [{ json: { ...$json, ai_response_text: `Obrigado pela mensagem. Vou encaminhar sua conversa para a equipe da Clinica Sorriso Feliz continuar o atendimento com cuidado.${reason}` } }];"
+      },
+      "id": "build-handoff-response",
+      "name": "Build Human Handoff Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  contents: [{\n    role: 'user',\n    parts: [{ text: `Generate the next WhatsApp reply in Brazilian Portuguese for Clinica Sorriso Feliz. Be concise, warm, and helpful. Do not invent prices, medical diagnosis, or appointment availability. If scheduling is requested, ask for preferred day/time and patient name if missing. If budget/price is requested, explain that the team can guide after evaluation.\\n\\nConversation context:\\n${$json.memory_context}\\n\\nClassified intent: ${$json.intent}` }]\n  }],\n  generationConfig: {\n    temperature: 0.4,\n    maxOutputTokens: 350\n  }\n} }}",
+        "options": {
+          "timeout": 20000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1500
+          }
+        }
+      },
+      "id": "gemini-generate-response",
+      "name": "Gemini - Generate Contextual Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2800,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Restore Context After Status Update').first().json;\nconst response = $input.first().json;\nconst aiText = response.candidates?.[0]?.content?.parts?.map((p) => p.text).join('\\n').trim() || 'Obrigado pelo contato. A equipe da Clinica Sorriso Feliz vai te ajudar em instantes.';\nreturn [{\n  json: {\n    ...current,\n    ai_response_text: aiText,\n    gemini_response_raw: response,\n    gemini_prompt_tokens: response.usageMetadata?.promptTokenCount ?? current.gemini_prompt_tokens,\n    gemini_completion_tokens: response.usageMetadata?.candidatesTokenCount ?? current.gemini_completion_tokens,\n    gemini_total_tokens: response.usageMetadata?.totalTokenCount ?? current.gemini_total_tokens\n  }\n}];"
+      },
+      "id": "parse-ai-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  conversation_id: $json.conversation_id,\n  sender: $json.needs_human ? 'system' : 'agent',\n  direction: 'outbound',\n  body: $json.ai_response_text,\n  message_type: 'text',\n  ai_model: $json.needs_human ? null : 'gemini-2.5-flash',\n  ai_prompt_tokens: $json.needs_human ? null : $json.gemini_prompt_tokens,\n  ai_completion_tokens: $json.needs_human ? null : $json.gemini_completion_tokens,\n  ai_total_tokens: $json.needs_human ? null : $json.gemini_total_tokens,\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sent_at: new Date().toISOString(),\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    needs_human: $json.needs_human,\n    handoff_reason: $json.handoff_reason,\n    gemini_response: $json.gemini_response_raw ?? null\n  }\n} }}",
+        "options": {
+          "timeout": 10000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "store-outbound-message",
+      "name": "Supabase - Store Outbound Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3280,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Parse AI Response').all().length ? $('Parse AI Response').first().json : $('Build Human Handoff Response').first().json;\nconst inserted = $input.first().json;\nconst outbound = Array.isArray(inserted) ? inserted[0] : inserted;\nreturn [{ json: { ...current, outbound_message_id: outbound.id } }];"
+      },
+      "id": "restore-context-after-outbound-insert",
+      "name": "Restore Context After Outbound Insert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL + '/message/sendText/' + $env.EVOLUTION_INSTANCE_NAME }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  number: $json.patient_phone_e164.replace('+', ''),\n  text: $json.ai_response_text,\n  delay: Number($env.EVOLUTION_SEND_DELAY_MS || 800)\n} }}",
+        "options": {
+          "timeout": 15000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1500
+          }
+        }
+      },
+      "id": "send-whatsapp-response",
+      "name": "Evolution API - Send WhatsApp Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3760,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Restore Context After Outbound Insert').first().json;\nconst evolutionResponse = $input.first().json;\nreturn [{ json: { ...current, evolution_send_response: evolutionResponse } }];"
+      },
+      "id": "prepare-delivery-update",
+      "name": "Prepare Delivery Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/messages?id=eq.' + $json.outbound_message_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  evolution_message_id: $json.evolution_send_response?.key?.id ?? $json.evolution_send_response?.id ?? null,\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    needs_human: $json.needs_human,\n    handoff_reason: $json.handoff_reason,\n    evolution_send_response: $json.evolution_send_response\n  }\n} }}",
+        "options": {
+          "timeout": 10000,
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 1000
+          }
+        }
+      },
+      "id": "update-outbound-delivery",
+      "name": "Supabase - Update Outbound Delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, ignored: false, conversation_id: $('Prepare Delivery Update').first().json.conversation_id, intent: $('Prepare Delivery Update').first().json.intent, needs_human: $('Prepare Delivery Update').first().json.needs_human, status: $('Prepare Delivery Update').first().json.needs_human ? 'aguardando_humano' : 'em_andamento' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        4480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, workflow: 'Clinica Sorriso Feliz - WhatsApp AI Agent', error: $json.message ?? $json.error?.message ?? 'Unhandled workflow error', execution_id: $execution.id } }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond - Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        4480,
+        420
+      ],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Evolution Webhook - Incoming WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Normalize Incoming Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "IF - Ignore Bot or Empty Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Ignore Bot or Empty Message": {
+      "main": [
+        [
+          {
+            "node": "Respond - Ignored Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase - Get Active Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Get Active Conversation": {
+      "main": [
+        [
+          {
+            "node": "Resolve Conversation State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Conversation State": {
+      "main": [
+        [
+          {
+            "node": "IF - Conversation Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Conversation Exists": {
+      "main": [
+        [
+          {
+            "node": "Use Existing Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase - Create Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Existing Conversation": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Create Conversation": {
+      "main": [
+        [
+          {
+            "node": "Use Created Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Created Conversation": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Get Conversation History": {
+      "main": [
+        [
+          {
+            "node": "Build Memory Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Memory Context": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Classify Intent": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent Classification": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Store Inbound Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Store Inbound Message": {
+      "main": [
+        [
+          {
+            "node": "Restore Context After Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Context After Insert": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Update Conversation Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Update Conversation Status": {
+      "main": [
+        [
+          {
+            "node": "Restore Context After Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Context After Status Update": {
+      "main": [
+        [
+          {
+            "node": "IF - Human Handoff Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Human Handoff Needed": {
+      "main": [
+        [
+          {
+            "node": "Build Human Handoff Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini - Generate Contextual Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Human Handoff Response": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Store Outbound Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Generate Contextual Response": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Store Outbound Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Store Outbound Message": {
+      "main": [
+        [
+          {
+            "node": "Restore Context After Outbound Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Context After Outbound Insert": {
+      "main": [
+        [
+          {
+            "node": "Evolution API - Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evolution API - Send WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivery Update": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Update Outbound Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Update Outbound Delivery": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "ai-agent"
+    },
+    {
+      "name": "clinica-sorriso-feliz"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-19T00:00:00.000Z",
+  "versionId": "clinica-sorriso-feliz-whatsapp-ai-agent-v1"
+}

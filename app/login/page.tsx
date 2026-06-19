@@ -1,0 +1,62 @@
+import { redirect } from "next/navigation";
+import { signIn } from "@/app/actions";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+type LoginPageProps = {
+  searchParams?: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) redirect("/");
+
+  const params = (await searchParams) ?? {};
+
+  return (
+    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+      <section className="w-full max-w-md rounded-lg border border-border bg-white p-6 shadow-soft">
+        <div className="mb-6">
+          <p className="text-sm font-medium text-primary">Clinica Sorriso Feliz</p>
+          <h1 className="mt-1 text-2xl font-semibold">Entrar no dashboard</h1>
+          <p className="mt-2 text-sm text-muted">
+            Use um usuario criado no Supabase Auth para acessar os dados reais protegidos por RLS.
+          </p>
+        </div>
+
+        {params.error ? (
+          <div className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-800">{params.error}</div>
+        ) : null}
+
+        <form action={signIn} className="space-y-4">
+          <label className="block">
+            <span className="text-sm font-medium">Email</span>
+            <input
+              required
+              type="email"
+              name="email"
+              autoComplete="email"
+              className="mt-1 h-11 w-full rounded-md border border-border px-3 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Senha</span>
+            <input
+              required
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              className="mt-1 h-11 w-full rounded-md border border-border px-3 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <button className="h-11 w-full rounded-md bg-primary px-5 text-sm font-semibold text-white hover:bg-cyan-800">
+            Entrar
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
