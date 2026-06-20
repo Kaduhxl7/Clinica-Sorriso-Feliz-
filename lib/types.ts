@@ -104,6 +104,8 @@ export type DashboardStats = {
   totalConversations: number;
   totalMessages: number;
   byDay: Array<{ day: string; total: number }>;
+  messagesByDay: Array<{ day: string; total: number }>;
+  growthByDay: Array<{ day: string; total: number }>;
   byIntent: Array<{ name: ConversationIntent | "SEM_INTENCAO"; value: number }>;
   byStatus: Array<{ name: ConversationStatus; value: number }>;
 };

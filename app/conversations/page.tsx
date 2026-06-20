@@ -3,16 +3,21 @@ import { AppShell } from "@/components/app-shell";
 import { ConversationFilters } from "@/components/conversation-filters";
 import { ConversationsTable } from "@/components/conversations-table";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import type { ConversationStatus } from "@/lib/types";
+import type { ConversationIntent, ConversationStatus } from "@/lib/types";
 import { getConversations, requireUser } from "@/lib/supabase/queries";
 
 const validStatuses: ConversationStatus[] = ["em_andamento", "aguardando_humano", "encerrada"];
+const validIntents: ConversationIntent[] = ["AGENDAMENTO", "ORCAMENTO", "DUVIDA", "HUMANO"];
 
 type ConversationsPageProps = {
   searchParams?: Promise<{
     phone?: string;
     keyword?: string;
     status?: string;
+    intent?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    humanOnly?: string;
   }>;
 };
 
@@ -24,10 +29,17 @@ export default async function ConversationsPage({ searchParams }: ConversationsP
   const status = validStatuses.includes(filters.status as ConversationStatus)
     ? (filters.status as ConversationStatus)
     : undefined;
+  const intent = validIntents.includes(filters.intent as ConversationIntent)
+    ? (filters.intent as ConversationIntent)
+    : undefined;
   const conversations = await getConversations({
     phone: filters.phone?.trim() || undefined,
     keyword: filters.keyword?.trim() || undefined,
     status,
+    intent,
+    dateFrom: filters.dateFrom?.trim() || undefined,
+    dateTo: filters.dateTo?.trim() || undefined,
+    humanOnly: filters.humanOnly === "true",
   });
 
   return (
@@ -37,12 +49,20 @@ export default async function ConversationsPage({ searchParams }: ConversationsP
         <p className="text-sm font-medium text-primary">Caixa de entrada</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Conversas</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Busque por telefone, palavra-chave, status e acompanhe novas mensagens em tempo real.
+          Busque por telefone, mensagem, intencao, status, periodo e acompanhe novas mensagens em tempo real.
         </p>
       </div>
 
       <div className="space-y-5">
-        <ConversationFilters phone={filters.phone} keyword={filters.keyword} status={status} />
+        <ConversationFilters
+          phone={filters.phone}
+          keyword={filters.keyword}
+          status={status}
+          intent={intent}
+          dateFrom={filters.dateFrom}
+          dateTo={filters.dateTo}
+          humanOnly={filters.humanOnly === "true"}
+        />
         <ConversationsTable conversations={conversations} />
       </div>
     </AppShell>

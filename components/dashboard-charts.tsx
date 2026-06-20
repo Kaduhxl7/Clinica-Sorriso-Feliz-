@@ -7,6 +7,8 @@ import {
   Cell,
   Pie,
   PieChart,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,7 +34,7 @@ const intentColors: Record<string, string> = {
 export function DashboardCharts({ stats }: { stats: DashboardStats }) {
   return (
     <div className="grid gap-5 xl:grid-cols-3">
-      <section className="rounded-lg border border-border bg-white p-5 shadow-soft xl:col-span-2">
+      <section className="rounded-lg border border-border bg-surface p-5 shadow-soft xl:col-span-2">
         <div className="mb-4">
           <h2 className="font-semibold">Conversas por dia</h2>
           <p className="text-sm text-muted">Ultimos 14 dias com conversas registradas</p>
@@ -50,7 +52,7 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-white p-5 shadow-soft">
+      <section className="rounded-lg border border-border bg-surface p-5 shadow-soft">
         <div className="mb-4">
           <h2 className="font-semibold">Status</h2>
           <p className="text-sm text-muted">Distribuicao atual</p>
@@ -69,7 +71,7 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-white p-5 shadow-soft xl:col-span-3">
+      <section className="rounded-lg border border-border bg-surface p-5 shadow-soft xl:col-span-3">
         <div className="mb-4">
           <h2 className="font-semibold">Intencao</h2>
           <p className="text-sm text-muted">Classificacao gerada pelo Gemini</p>
@@ -87,6 +89,42 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
                 ))}
               </Bar>
             </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-5 shadow-soft xl:col-span-2">
+        <div className="mb-4">
+          <h2 className="font-semibold">Mensagens por dia</h2>
+          <p className="text-sm text-muted">Volume diario recebido e enviado pelo agente</p>
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stats.messagesByDay}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="day" tickFormatter={formatDay} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+              <Tooltip labelFormatter={(value) => formatDay(String(value))} />
+              <Bar dataKey="total" fill="#0f766e" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-5 shadow-soft">
+        <div className="mb-4">
+          <h2 className="font-semibold">Crescimento</h2>
+          <p className="text-sm text-muted">Conversas acumuladas nos ultimos dias</p>
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={stats.growthByDay}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="day" tickFormatter={formatDay} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+              <Tooltip labelFormatter={(value) => formatDay(String(value))} />
+              <Line type="monotone" dataKey="total" stroke="#0891b2" strokeWidth={3} dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </section>
