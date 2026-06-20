@@ -1,6 +1,6 @@
 import type { Conversation, ConversationMetric, Message } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { IntentBadge, StatusBadge } from "@/components/status-badge";
+import { HumanAttentionBadge, IntentBadge, StatusBadge } from "@/components/status-badge";
 
 export function ConversationThread({
   conversation,
@@ -13,12 +13,13 @@ export function ConversationThread({
 }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
-      <section className="rounded-lg border border-border bg-white shadow-soft">
+      <section className="rounded-lg border border-border bg-surface shadow-soft">
         <div className="border-b border-border p-5">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold">{conversation.patient_name || conversation.patient_phone_e164}</h2>
             <StatusBadge status={conversation.status} />
             <IntentBadge intent={conversation.intent} />
+            <HumanAttentionBadge status={conversation.status} intent={conversation.intent} />
           </div>
           <p className="mt-1 text-sm text-muted">{conversation.patient_phone_e164}</p>
         </div>
@@ -35,7 +36,7 @@ export function ConversationThread({
                     className={
                       outbound
                         ? "max-w-[78%] rounded-lg bg-primary px-4 py-3 text-white"
-                        : "max-w-[78%] rounded-lg bg-slate-100 px-4 py-3 text-slate-900"
+                        : "max-w-[78%] rounded-lg bg-surface-muted px-4 py-3 text-foreground"
                     }
                   >
                     <div className="mb-1 flex items-center gap-2 text-xs opacity-80">
@@ -52,17 +53,17 @@ export function ConversationThread({
       </section>
 
       <aside className="space-y-5">
-        <section className="rounded-lg border border-border bg-white p-5 shadow-soft">
+        <section className="rounded-lg border border-border bg-surface p-5 shadow-soft">
           <h3 className="font-semibold">Resumo</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-700">{conversation.summary || "Sem resumo gerado."}</p>
+          <p className="mt-3 text-sm leading-6 text-foreground/80">{conversation.summary || "Sem resumo gerado."}</p>
           {conversation.handoff_reason ? (
-            <div className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
               {conversation.handoff_reason}
             </div>
           ) : null}
         </section>
 
-        <section className="rounded-lg border border-border bg-white p-5 shadow-soft">
+        <section className="rounded-lg border border-border bg-surface p-5 shadow-soft">
           <h3 className="font-semibold">Metricas</h3>
           <dl className="mt-4 space-y-3 text-sm">
             <MetricRow label="Mensagens" value={metrics?.total_messages_count ?? messages.length} />

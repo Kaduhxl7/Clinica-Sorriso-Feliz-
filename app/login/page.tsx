@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="w-full max-w-md rounded-lg border border-border bg-white p-6 shadow-soft">
+      <section className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-soft">
         <div className="mb-6">
           <p className="text-sm font-medium text-primary">Clinica Sorriso Feliz</p>
           <h1 className="mt-1 text-2xl font-semibold">Entrar no dashboard</h1>
@@ -28,7 +28,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         {params.error ? (
-          <div className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-800">{params.error}</div>
+          <div className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-400/10 dark:text-rose-200">
+            {params.error}
+          </div>
         ) : null}
 
         <form action={signIn} className="space-y-4">
@@ -39,7 +41,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               type="email"
               name="email"
               autoComplete="email"
-              className="mt-1 h-11 w-full rounded-md border border-border px-3 text-sm outline-none focus:border-primary"
+              className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
             />
           </label>
           <label className="block">
@@ -49,7 +51,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               type="password"
               name="password"
               autoComplete="current-password"
-              className="mt-1 h-11 w-full rounded-md border border-border px-3 text-sm outline-none focus:border-primary"
+              className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
             />
           </label>
           <button className="h-11 w-full rounded-md bg-primary px-5 text-sm font-semibold text-white hover:bg-cyan-800">

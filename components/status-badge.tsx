@@ -19,9 +19,9 @@ export function StatusBadge({ status }: { status: ConversationStatus }) {
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
-        status === "em_andamento" && "bg-cyan-50 text-cyan-800",
-        status === "aguardando_humano" && "bg-amber-50 text-amber-800",
-        status === "encerrada" && "bg-slate-100 text-slate-700",
+        status === "em_andamento" && "bg-cyan-50 text-cyan-800 dark:bg-cyan-400/10 dark:text-cyan-200",
+        status === "aguardando_humano" && "bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-200",
+        status === "encerrada" && "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
       )}
     >
       {statusLabels[status]}
@@ -38,13 +38,31 @@ export function IntentBadge({ intent }: { intent: ConversationIntent | null }) {
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
-        intent === "AGENDAMENTO" && "bg-emerald-50 text-emerald-800",
-        intent === "ORCAMENTO" && "bg-blue-50 text-blue-800",
-        intent === "DUVIDA" && "bg-violet-50 text-violet-800",
-        intent === "HUMANO" && "bg-rose-50 text-rose-800",
+        intent === "AGENDAMENTO" && "bg-emerald-50 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200",
+        intent === "ORCAMENTO" && "bg-blue-50 text-blue-800 dark:bg-blue-400/10 dark:text-blue-200",
+        intent === "DUVIDA" && "bg-violet-50 text-violet-800 dark:bg-violet-400/10 dark:text-violet-200",
+        intent === "HUMANO" && "bg-rose-50 text-rose-800 dark:bg-rose-400/10 dark:text-rose-200",
       )}
     >
       {intentLabels[intent]}
+    </span>
+  );
+}
+
+export function HumanAttentionBadge({
+  status,
+  intent,
+}: {
+  status: ConversationStatus;
+  intent: ConversationIntent | null;
+}) {
+  const needsHuman = status === "aguardando_humano" || intent === "HUMANO";
+
+  if (!needsHuman) return null;
+
+  return (
+    <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-sm dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
+      Atencao humana
     </span>
   );
 }

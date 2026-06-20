@@ -13,6 +13,8 @@ const config: Config = {
         foreground: "rgb(var(--foreground) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         border: "rgb(var(--border) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        "surface-muted": "rgb(var(--surface-muted) / <alpha-value>)",
         primary: "rgb(var(--primary) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
       },

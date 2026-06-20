@@ -7,8 +7,21 @@
   --foreground: 15 23 42;
   --muted: 100 116 139;
   --border: 226 232 240;
+  --surface: 255 255 255;
+  --surface-muted: 241 245 249;
   --primary: 14 116 144;
   --accent: 6 182 212;
+}
+
+.dark {
+  --background: 2 6 23;
+  --foreground: 226 232 240;
+  --muted: 148 163 184;
+  --border: 30 41 59;
+  --surface: 15 23 42;
+  --surface-muted: 30 41 59;
+  --primary: 34 211 238;
+  --accent: 103 232 249;
 }
 
 * {
@@ -19,6 +32,11 @@ body {
   min-height: 100vh;
   background: rgb(var(--background));
   color: rgb(var(--foreground));
+  color-scheme: light;
+}
+
+.dark body {
+  color-scheme: dark;
 }
 
 a {
