@@ -2,20 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import { LayoutDashboard, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export type SidebarNavIcon = "dashboard" | "conversations";
+
+const icons = {
+  dashboard: LayoutDashboard,
+  conversations: MessageCircle,
+};
 
 export function SidebarNavLink({
   href,
-  icon: Icon,
+  icon,
   label,
 }: {
   href: string;
-  icon: LucideIcon;
+  icon: SidebarNavIcon;
   label: string;
 }) {
   const pathname = usePathname();
   const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const Icon = icons[icon];
 
   return (
     <Link

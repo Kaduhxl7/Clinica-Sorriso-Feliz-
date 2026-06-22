@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircle, LayoutDashboard, LogOut } from "lucide-react";
+import { MessageCircle, LogOut } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { SidebarNavLink } from "@/components/sidebar-nav-link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,8 +25,8 @@ export function AppShell({
         </div>
 
         <nav className="mt-8 space-y-1" aria-label="Navegacao principal">
-          <SidebarNavLink href="/" icon={LayoutDashboard} label="Dashboard" />
-          <SidebarNavLink href="/conversations" icon={MessageCircle} label="Conversas" />
+          <SidebarNavLink href="/" icon="dashboard" label="Dashboard" />
+          <SidebarNavLink href="/conversations" icon="conversations" label="Conversas" />
         </nav>
 
         <div className="mt-6 rounded-lg border border-border bg-surface-muted/70 p-3">
