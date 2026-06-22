@@ -1,5 +1,6 @@
 export type ConversationStatus = "em_andamento" | "aguardando_humano" | "encerrada";
 export type ConversationIntent = "AGENDAMENTO" | "ORCAMENTO" | "DUVIDA" | "HUMANO";
+export type ConversationSentiment = "POSITIVO" | "NEUTRO" | "NEGATIVO";
 export type MessageSender = "patient" | "agent" | "human" | "system";
 export type MessageDirection = "inbound" | "outbound" | "internal";
 
@@ -12,6 +13,8 @@ export type Conversation = {
   status: ConversationStatus;
   intent: ConversationIntent | null;
   intent_confidence: number | null;
+  sentiment: ConversationSentiment | null;
+  sentiment_confidence: number | null;
   assigned_human_name: string | null;
   handoff_reason: string | null;
   summary: string | null;
@@ -41,6 +44,8 @@ export type Message = {
   ai_latency_ms: number | null;
   intent: ConversationIntent | null;
   intent_confidence: number | null;
+  sentiment: ConversationSentiment | null;
+  sentiment_confidence: number | null;
   metadata: Record<string, unknown>;
   sent_at: string;
   delivered_at: string | null;
@@ -94,6 +99,7 @@ export type Database = {
     Enums: {
       conversation_status: ConversationStatus;
       conversation_intent: ConversationIntent;
+      conversation_sentiment: ConversationSentiment;
       message_sender: MessageSender;
       message_direction: MessageDirection;
     };
@@ -108,4 +114,8 @@ export type DashboardStats = {
   growthByDay: Array<{ day: string; total: number }>;
   byIntent: Array<{ name: ConversationIntent | "SEM_INTENCAO"; value: number }>;
   byStatus: Array<{ name: ConversationStatus; value: number }>;
+  bySentiment: Array<{ name: ConversationSentiment | "SEM_SENTIMENTO"; value: number }>;
+  positiveConversations: number;
+  neutralConversations: number;
+  negativeConversations: number;
 };

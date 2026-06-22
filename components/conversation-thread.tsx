@@ -1,6 +1,6 @@
 import type { Conversation, ConversationMetric, Message } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { HumanAttentionBadge, IntentBadge, StatusBadge } from "@/components/status-badge";
+import { HumanAttentionBadge, IntentBadge, SentimentBadge, StatusBadge } from "@/components/status-badge";
 
 export function ConversationThread({
   conversation,
@@ -19,6 +19,7 @@ export function ConversationThread({
             <h2 className="text-lg font-semibold">{conversation.patient_name || conversation.patient_phone_e164}</h2>
             <StatusBadge status={conversation.status} />
             <IntentBadge intent={conversation.intent} />
+            <SentimentBadge sentiment={conversation.sentiment} />
             <HumanAttentionBadge status={conversation.status} intent={conversation.intent} />
           </div>
           <p className="mt-1 text-sm text-muted">{conversation.patient_phone_e164}</p>

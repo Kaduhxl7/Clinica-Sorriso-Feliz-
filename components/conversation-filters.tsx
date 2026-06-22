@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import type { ConversationIntent, ConversationStatus } from "@/lib/types";
+import type { ConversationIntent, ConversationSentiment, ConversationStatus } from "@/lib/types";
 
 const statuses: Array<{ value: ConversationStatus; label: string }> = [
   { value: "em_andamento", label: "Em andamento" },
@@ -14,11 +14,18 @@ const intents: Array<{ value: ConversationIntent; label: string }> = [
   { value: "HUMANO", label: "Humano" },
 ];
 
+const sentiments: Array<{ value: ConversationSentiment; label: string }> = [
+  { value: "POSITIVO", label: "Positivo" },
+  { value: "NEUTRO", label: "Neutro" },
+  { value: "NEGATIVO", label: "Negativo" },
+];
+
 export function ConversationFilters({
   phone,
   keyword,
   status,
   intent,
+  sentiment,
   dateFrom,
   dateTo,
   humanOnly,
@@ -27,12 +34,13 @@ export function ConversationFilters({
   keyword?: string;
   status?: string;
   intent?: string;
+  sentiment?: string;
   dateFrom?: string;
   dateTo?: string;
   humanOnly?: boolean;
 }) {
   return (
-    <form className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-soft md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_150px_150px_auto]">
+    <form className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-soft md:grid-cols-2 xl:grid-cols-[1fr_1fr_170px_170px_170px_145px_145px_auto]">
       <label className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
@@ -70,6 +78,18 @@ export function ConversationFilters({
       >
         <option value="">Todas intencoes</option>
         {intents.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+      <select
+        name="sentiment"
+        defaultValue={sentiment ?? ""}
+        className="h-11 rounded-md border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
+      >
+        <option value="">Todos sentimentos</option>
+        {sentiments.map((item) => (
           <option key={item.value} value={item.value}>
             {item.label}
           </option>

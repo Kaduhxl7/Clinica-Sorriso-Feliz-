@@ -31,6 +31,13 @@ const intentColors: Record<string, string> = {
   SEM_INTENCAO: "#94a3b8",
 };
 
+const sentimentColors: Record<string, string> = {
+  POSITIVO: "#059669",
+  NEUTRO: "#64748b",
+  NEGATIVO: "#e11d48",
+  SEM_SENTIMENTO: "#94a3b8",
+};
+
 export function DashboardCharts({ stats }: { stats: DashboardStats }) {
   return (
     <div className="grid gap-5 xl:grid-cols-3">
@@ -86,6 +93,28 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                 {stats.byIntent.map((entry) => (
                   <Cell key={entry.name} fill={intentColors[entry.name]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-5 shadow-soft xl:col-span-3">
+        <div className="mb-4">
+          <h2 className="font-semibold">Sentimento</h2>
+          <p className="text-sm text-muted">Distribuicao emocional classificada pelo Gemini</p>
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stats.bySentiment} layout="vertical" margin={{ left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis dataKey="name" type="category" width={140} />
+              <Tooltip />
+              <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                {stats.bySentiment.map((entry) => (
+                  <Cell key={entry.name} fill={sentimentColors[entry.name]} />
                 ))}
               </Bar>
             </BarChart>

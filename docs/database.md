@@ -4,7 +4,7 @@ Project: AI WhatsApp Agent for Clinica Sorriso Feliz
 
 Stack flow: WhatsApp -> Evolution API -> n8n Cloud -> Gemini 2.5 Flash -> Supabase -> Next.js Dashboard
 
-The schema is implemented in `supabase/migrations/001_ai_whatsapp_agent_schema.sql`. It contains no mock data.
+The base schema is implemented in `supabase/migrations/001_ai_whatsapp_agent_schema.sql`, with incremental production-safe migrations in the same folder. It contains no mock data.
 
 ## Required Credentials
 
@@ -34,6 +34,12 @@ Never expose the Supabase service role key or Evolution API key in the browser.
 - `DUVIDA`: patient asks a general question.
 - `HUMANO`: patient requested human support or AI should escalate.
 
+### conversation_sentiment
+
+- `POSITIVO`: patient tone is positive, grateful, calm, or satisfied.
+- `NEUTRO`: patient tone is neutral, objective, unclear, or informational.
+- `NEGATIVO`: patient tone is frustrated, worried, angry, complaining, or dissatisfied.
+
 ### message_sender
 
 - `patient`
@@ -61,6 +67,8 @@ Key columns:
 - `status`: lifecycle status.
 - `intent`: latest classified intent.
 - `intent_confidence`: confidence score from Gemini or n8n classification logic, from `0` to `1`.
+- `sentiment`: latest classified sentiment. Nullable for historical records created before migration `004`.
+- `sentiment_confidence`: sentiment confidence score from Gemini, from `0` to `1`.
 - `assigned_human_name`: staff member handling the conversation, when escalated.
 - `handoff_reason`: reason for escalation.
 - `summary`: short AI-generated summary for the dashboard.
@@ -81,7 +89,7 @@ Important constraints:
 Important indexes:
 
 - Unique active thread per `evolution_instance_id + whatsapp_remote_jid` while status is `em_andamento` or `aguardando_humano`.
-- Status, intent, patient phone, last message, and creation date indexes.
+- Status, intent, sentiment, patient phone, last message, and creation date indexes.
 
 ## Table: messages
 
@@ -101,6 +109,7 @@ Key columns:
 - `ai_prompt_tokens`, `ai_completion_tokens`, `ai_total_tokens`: token accounting when available.
 - `ai_latency_ms`: Gemini response latency.
 - `intent`, `intent_confidence`: intent detected for that specific message.
+- `sentiment`, `sentiment_confidence`: sentiment detected for that message or interaction.
 - `metadata`: JSONB field for Evolution API payload fragments, Gemini safety metadata, n8n execution id, or delivery details.
 - `sent_at`, `delivered_at`, `read_at`: message timeline.
 - `created_at`, `updated_at`: audit timestamps.
@@ -115,7 +124,7 @@ Important indexes:
 
 - Unique Evolution message id.
 - Conversation timeline index on `conversation_id, sent_at`.
-- Sender, direction, intent, created date, and JSONB metadata GIN indexes.
+- Sender, direction, intent, sentiment, created date, and JSONB metadata GIN indexes.
 
 ## Table: conversation_metrics
 
@@ -155,6 +164,10 @@ For multi-clinic production use, add a `clinic_id` tenant column and replace the
 
 1. Open Supabase SQL Editor.
 2. Run `supabase/migrations/001_ai_whatsapp_agent_schema.sql`.
-3. Store Supabase URL and keys in n8n credentials.
-4. Store Supabase anon key and URL in Next.js environment variables.
-5. Confirm the Next.js dashboard uses authenticated Supabase sessions for reads.
+3. Run `supabase/migrations/002_enable_realtime_for_dashboard.sql`.
+4. Run `supabase/migrations/003_grant_agent_dashboard_permissions.sql`.
+5. Run `supabase/migrations/004_add_conversation_sentiment.sql`.
+6. Import the updated n8n workflow that writes sentiment fields.
+7. Store Supabase URL and keys in n8n credentials.
+8. Store Supabase anon key and URL in Next.js environment variables.
+9. Confirm the Next.js dashboard uses authenticated Supabase sessions for reads.

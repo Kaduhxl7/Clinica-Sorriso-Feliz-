@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { MessageCircle, MessagesSquare, Activity, UserRoundCheck } from "lucide-react";
+import { Activity, Frown, Meh, MessageCircle, MessagesSquare, Smile, UserRoundCheck } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { MetricCard } from "@/components/metric-card";
@@ -29,6 +29,9 @@ export default async function DashboardPage() {
         <MetricCard title="Total de mensagens" value={stats.totalMessages} icon={MessagesSquare} />
         <MetricCard title="Aguardando humano" value={awaitingHuman} icon={UserRoundCheck} />
         <MetricCard title="Eventos monitorados" value="Realtime" helper="conversations, messages, metrics" icon={Activity} />
+        <MetricCard title="Sentimento positivo" value={stats.positiveConversations} icon={Smile} />
+        <MetricCard title="Sentimento neutro" value={stats.neutralConversations} icon={Meh} />
+        <MetricCard title="Sentimento negativo" value={stats.negativeConversations} icon={Frown} />
       </div>
 
       <DashboardCharts stats={stats} />

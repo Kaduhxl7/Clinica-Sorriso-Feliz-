@@ -170,7 +170,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const conversation = $json.conversation;\nreturn [{ json: { ...$json, conversation_id: conversation.id, conversation_status: conversation.status, conversation_intent: conversation.intent } }];"
+        "jsCode": "const conversation = $json.conversation;\nreturn [{ json: { ...$json, conversation_id: conversation.id, conversation_status: conversation.status, conversation_intent: conversation.intent, conversation_sentiment: conversation.sentiment ?? null } }];"
       },
       "id": "use-existing-conversation",
       "name": "Use Existing Conversation",
@@ -228,7 +228,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const incoming = $('Resolve Conversation State').first().json;\nconst result = $input.first().json;\nconst row = Array.isArray(result) ? result[0] : result;\nreturn [{ json: { ...incoming, conversation: row, conversation_id: row.id, conversation_status: row.status, conversation_intent: row.intent } }];"
+        "jsCode": "const incoming = $('Resolve Conversation State').first().json;\nconst result = $input.first().json;\nconst row = Array.isArray(result) ? result[0] : result;\nreturn [{ json: { ...incoming, conversation: row, conversation_id: row.id, conversation_status: row.status, conversation_intent: row.intent, conversation_sentiment: row.sentiment ?? null } }];"
       },
       "id": "use-created-conversation",
       "name": "Use Created Conversation",
@@ -241,7 +241,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.SUPABASE_URL + '/rest/v1/messages?select=sender,direction,body,intent,sent_at&conversation_id=eq.' + $json.conversation_id + '&order=sent_at.desc&limit=' + ($env.MEMORY_MESSAGE_LIMIT || 12) }}",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/messages?select=sender,direction,body,intent,sentiment,sent_at&conversation_id=eq.' + $json.conversation_id + '&order=sent_at.desc&limit=' + ($env.MEMORY_MESSAGE_LIMIT || 12) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -279,7 +279,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let current;\ntry {\n  current = $('Use Existing Conversation').first().json;\n} catch (error) {\n  current = $('Use Created Conversation').first().json;\n}\nconst result = $input.first().json;\nconst rawRows = Array.isArray(result)\n  ? result\n  : (Array.isArray(result.data) ? result.data : (result.sender ? [result] : []));\nconst historyRows = rawRows.reverse();\nconst historyText = historyRows\n  .map((m) => `${m.sender}/${m.direction}: ${m.body ?? ''}`)\n  .filter((line) => line.trim().length > 0)\n  .join('\\n');\nconst clinicContext = `Clinic: Clinica Sorriso Feliz\\nRole: You are a WhatsApp assistant for a dental clinic. Be concise, polite, and helpful in Brazilian Portuguese. Do not diagnose. For pain, emergencies, medical risk, complaints, pricing negotiation, or explicit request for a person, hand off to a human.`;\nreturn [{\n  json: {\n    ...current,\n    history: historyRows,\n    memory_context: `${clinicContext}\\n\\nPrevious conversation:\\n${historyText || 'No previous messages.'}\\n\\nCurrent patient message:\\n${current.message_text}`\n  }\n}];"
+        "jsCode": "let current;\ntry {\n  current = $('Use Existing Conversation').first().json;\n} catch (error) {\n  current = $('Use Created Conversation').first().json;\n}\nconst result = $input.first().json;\nconst rawRows = Array.isArray(result)\n  ? result\n  : (Array.isArray(result.data) ? result.data : (result.sender ? [result] : []));\nconst historyRows = rawRows.reverse();\nconst historyText = historyRows\n  .map((m) => `${m.sender}/${m.direction}${m.sentiment ? ` [${m.sentiment}]` : ''}: ${m.body ?? ''}`)\n  .filter((line) => line.trim().length > 0)\n  .join('\\n');\nconst clinicContext = `Clinic: Clinica Sorriso Feliz\\nRole: You are a WhatsApp assistant for a dental clinic. Be concise, polite, and helpful in Brazilian Portuguese. Do not diagnose. For pain, emergencies, medical risk, complaints, pricing negotiation, or explicit request for a person, hand off to a human.`;\nreturn [{\n  json: {\n    ...current,\n    history: historyRows,\n    memory_context: `${clinicContext}\\n\\nPrevious conversation:\\n${historyText || 'No previous messages.'}\\n\\nCurrent patient message:\\n${current.message_text}`\n  }\n}];"
       },
       "id": "build-memory-context",
       "name": "Build Memory Context",
@@ -305,7 +305,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  contents: [{\n    role: 'user',\n    parts: [{ text: `Classify this dental clinic WhatsApp conversation. Return ONLY valid JSON with keys: intent, confidence, needs_human, handoff_reason, summary. Allowed intents: AGENDAMENTO, ORCAMENTO, DUVIDA, HUMANO. needs_human must be true for explicit human request, emergency symptoms, complaint, sensitive medical issue, uncertain answer, or anything outside clinic assistant scope.\\n\\n${$json.memory_context}` }]\n  }],\n  generationConfig: {\n    temperature: 0.1,\n    responseMimeType: 'application/json'\n  }\n} }}",
+        "jsonBody": "={{ {\n  contents: [{\n    role: 'user',\n    parts: [{ text: `Classify this dental clinic WhatsApp conversation. Return ONLY valid JSON with keys: intent, confidence, sentiment, sentiment_confidence, needs_human, handoff_reason, summary. Allowed intents: AGENDAMENTO, ORCAMENTO, DUVIDA, HUMANO. Allowed sentiment values: POSITIVO, NEUTRO, NEGATIVO. sentiment must describe the patient's tone in the current message and recent context. needs_human must be true for explicit human request, emergency symptoms, complaint, sensitive medical issue, uncertain answer, or anything outside clinic assistant scope.\\n\\n${$json.memory_context}` }]\n  }],\n  generationConfig: {\n    temperature: 0.1,\n    responseMimeType: 'application/json'\n  }\n} }}",
         "options": {
           "timeout": 20000,
           "retry": {
@@ -325,7 +325,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const current = $('Build Memory Context').first().json;\nconst response = $input.first().json;\nconst text = response.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (error) {\n  parsed = { intent: 'HUMANO', confidence: 0, needs_human: true, handoff_reason: 'Falha ao interpretar classificacao do Gemini.', summary: null };\n}\nconst allowed = ['AGENDAMENTO', 'ORCAMENTO', 'DUVIDA', 'HUMANO'];\nconst intent = allowed.includes(parsed.intent) ? parsed.intent : 'HUMANO';\nconst alreadyWaitingHuman = current.conversation_status === 'aguardando_humano';\nconst needsHuman = Boolean(alreadyWaitingHuman || parsed.needs_human || intent === 'HUMANO');\nreturn [{\n  json: {\n    ...current,\n    classification: parsed,\n    intent: alreadyWaitingHuman ? 'HUMANO' : intent,\n    intent_confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0))),\n    needs_human: needsHuman,\n    handoff_reason: alreadyWaitingHuman ? 'Conversa ja esta aguardando atendimento humano.' : (parsed.handoff_reason ?? (needsHuman ? 'Encaminhamento solicitado por regra de atendimento.' : null)),\n    conversation_summary: parsed.summary ?? null,\n    gemini_classification_raw: response,\n    gemini_prompt_tokens: response.usageMetadata?.promptTokenCount ?? null,\n    gemini_completion_tokens: response.usageMetadata?.candidatesTokenCount ?? null,\n    gemini_total_tokens: response.usageMetadata?.totalTokenCount ?? null\n  }\n}];"
+        "jsCode": "const current = $('Build Memory Context').first().json;\nconst response = $input.first().json;\nconst text = response.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (error) {\n  parsed = { intent: 'HUMANO', confidence: 0, sentiment: 'NEUTRO', sentiment_confidence: 0, needs_human: true, handoff_reason: 'Falha ao interpretar classificacao do Gemini.', summary: null };\n}\nconst allowedIntents = ['AGENDAMENTO', 'ORCAMENTO', 'DUVIDA', 'HUMANO'];\nconst allowedSentiments = ['POSITIVO', 'NEUTRO', 'NEGATIVO'];\nconst intent = allowedIntents.includes(parsed.intent) ? parsed.intent : 'HUMANO';\nconst sentiment = allowedSentiments.includes(String(parsed.sentiment ?? '').toUpperCase()) ? String(parsed.sentiment).toUpperCase() : 'NEUTRO';\nconst alreadyWaitingHuman = current.conversation_status === 'aguardando_humano';\nconst needsHuman = Boolean(alreadyWaitingHuman || parsed.needs_human || intent === 'HUMANO');\nreturn [{\n  json: {\n    ...current,\n    classification: parsed,\n    intent: alreadyWaitingHuman ? 'HUMANO' : intent,\n    intent_confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0))),\n    sentiment,\n    sentiment_confidence: Math.max(0, Math.min(1, Number(parsed.sentiment_confidence ?? parsed.confidence ?? 0))),\n    needs_human: needsHuman,\n    handoff_reason: alreadyWaitingHuman ? 'Conversa ja esta aguardando atendimento humano.' : (parsed.handoff_reason ?? (needsHuman ? 'Encaminhamento solicitado por regra de atendimento.' : null)),\n    conversation_summary: parsed.summary ?? null,\n    gemini_classification_raw: response,\n    gemini_prompt_tokens: response.usageMetadata?.promptTokenCount ?? null,\n    gemini_completion_tokens: response.usageMetadata?.candidatesTokenCount ?? null,\n    gemini_total_tokens: response.usageMetadata?.totalTokenCount ?? null\n  }\n}];"
       },
       "id": "parse-intent-classification",
       "name": "Parse Intent Classification",
@@ -363,7 +363,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  conversation_id: $json.conversation_id,\n  evolution_message_id: $json.evolution_message_id,\n  sender: 'patient',\n  direction: 'inbound',\n  body: $json.message_text || null,\n  media_url: $json.media_url,\n  media_mime_type: $json.media_mime_type,\n  message_type: $json.message_type,\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sent_at: $json.sent_at,\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    raw_event: $json.raw_event,\n    gemini_classification: $json.classification\n  }\n} }}",
+        "jsonBody": "={{ {\n  conversation_id: $json.conversation_id,\n  evolution_message_id: $json.evolution_message_id,\n  sender: 'patient',\n  direction: 'inbound',\n  body: $json.message_text || null,\n  media_url: $json.media_url,\n  media_mime_type: $json.media_mime_type,\n  message_type: $json.message_type,\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sentiment: $json.sentiment,\n  sentiment_confidence: $json.sentiment_confidence,\n  sent_at: $json.sent_at,\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    raw_event: $json.raw_event,\n    gemini_classification: $json.classification\n  }\n} }}",
         "options": {
           "timeout": 10000,
           "retry": {
@@ -421,7 +421,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  summary: $json.conversation_summary,\n  status: $json.needs_human ? 'aguardando_humano' : 'em_andamento',\n  human_requested_at: $json.needs_human ? new Date().toISOString() : null,\n  handoff_reason: $json.needs_human ? $json.handoff_reason : null\n} }}",
+        "jsonBody": "={{ {\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sentiment: $json.sentiment,\n  sentiment_confidence: $json.sentiment_confidence,\n  summary: $json.conversation_summary,\n  status: $json.needs_human ? 'aguardando_humano' : 'em_andamento',\n  human_requested_at: $json.needs_human ? new Date().toISOString() : null,\n  handoff_reason: $json.needs_human ? $json.handoff_reason : null\n} }}",
         "options": {
           "timeout": 10000,
           "retry": {
@@ -512,7 +512,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  contents: [{\n    role: 'user',\n    parts: [{ text: `Generate the next WhatsApp reply in Brazilian Portuguese for Clinica Sorriso Feliz. Be concise, warm, and helpful. Do not invent prices, medical diagnosis, or appointment availability. If scheduling is requested, ask for preferred day/time and patient name if missing. If budget/price is requested, explain that the team can guide after evaluation.\\n\\nConversation context:\\n${$json.memory_context}\\n\\nClassified intent: ${$json.intent}` }]\n  }],\n  generationConfig: {\n    temperature: 0.4,\n    maxOutputTokens: 350\n  }\n} }}",
+        "jsonBody": "={{ {\n  contents: [{\n    role: 'user',\n    parts: [{ text: `Generate the next WhatsApp reply in Brazilian Portuguese for Clinica Sorriso Feliz. Be concise, warm, and helpful. Do not invent prices, medical diagnosis, or appointment availability. If scheduling is requested, ask for preferred day/time and patient name if missing. If budget/price is requested, explain that the team can guide after evaluation. Match tone to the classified sentiment without sounding robotic.\\n\\nConversation context:\\n${$json.memory_context}\\n\\nClassified intent: ${$json.intent}\\nClassified sentiment: ${$json.sentiment}` }]\n  }],\n  generationConfig: {\n    temperature: 0.4,\n    maxOutputTokens: 350\n  }\n} }}",
         "options": {
           "timeout": 20000,
           "retry": {
@@ -570,7 +570,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  conversation_id: $json.conversation_id,\n  sender: $json.needs_human ? 'system' : 'agent',\n  direction: 'outbound',\n  body: $json.ai_response_text,\n  message_type: 'text',\n  ai_model: $json.needs_human ? null : 'gemini-2.5-flash',\n  ai_prompt_tokens: $json.needs_human ? null : $json.gemini_prompt_tokens,\n  ai_completion_tokens: $json.needs_human ? null : $json.gemini_completion_tokens,\n  ai_total_tokens: $json.needs_human ? null : $json.gemini_total_tokens,\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sent_at: new Date().toISOString(),\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    needs_human: $json.needs_human,\n    handoff_reason: $json.handoff_reason,\n    gemini_response: $json.gemini_response_raw ?? null\n  }\n} }}",
+        "jsonBody": "={{ {\n  conversation_id: $json.conversation_id,\n  sender: $json.needs_human ? 'system' : 'agent',\n  direction: 'outbound',\n  body: $json.ai_response_text,\n  message_type: 'text',\n  ai_model: $json.needs_human ? null : 'gemini-2.5-flash',\n  ai_prompt_tokens: $json.needs_human ? null : $json.gemini_prompt_tokens,\n  ai_completion_tokens: $json.needs_human ? null : $json.gemini_completion_tokens,\n  ai_total_tokens: $json.needs_human ? null : $json.gemini_total_tokens,\n  intent: $json.intent,\n  intent_confidence: $json.intent_confidence,\n  sentiment: $json.sentiment,\n  sentiment_confidence: $json.sentiment_confidence,\n  sent_at: new Date().toISOString(),\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    needs_human: $json.needs_human,\n    handoff_reason: $json.handoff_reason,\n    sentiment: $json.sentiment,\n    sentiment_confidence: $json.sentiment_confidence,\n    gemini_response: $json.gemini_response_raw ?? null\n  }\n} }}",
         "options": {
           "timeout": 10000,
           "retry": {
@@ -674,7 +674,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  evolution_message_id: $json.evolution_send_response?.key?.id ?? $json.evolution_send_response?.id ?? null,\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    needs_human: $json.needs_human,\n    handoff_reason: $json.handoff_reason,\n    evolution_send_response: $json.evolution_send_response\n  }\n} }}",
+        "jsonBody": "={{ {\n  evolution_message_id: $json.evolution_send_response?.key?.id ?? $json.evolution_send_response?.id ?? null,\n  metadata: {\n    n8n_execution_id: $json.n8n_execution_id,\n    needs_human: $json.needs_human,\n    handoff_reason: $json.handoff_reason,\n    sentiment: $json.sentiment,\n    sentiment_confidence: $json.sentiment_confidence,\n    evolution_send_response: $json.evolution_send_response\n  }\n} }}",
         "options": {
           "timeout": 10000,
           "retry": {
@@ -695,7 +695,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { ok: true, ignored: false, conversation_id: $('Prepare Delivery Update').first().json.conversation_id, intent: $('Prepare Delivery Update').first().json.intent, needs_human: $('Prepare Delivery Update').first().json.needs_human, status: $('Prepare Delivery Update').first().json.needs_human ? 'aguardando_humano' : 'em_andamento' } }}",
+        "responseBody": "={{ { ok: true, ignored: false, conversation_id: $('Prepare Delivery Update').first().json.conversation_id, intent: $('Prepare Delivery Update').first().json.intent, sentiment: $('Prepare Delivery Update').first().json.sentiment, needs_human: $('Prepare Delivery Update').first().json.needs_human, status: $('Prepare Delivery Update').first().json.needs_human ? 'aguardando_humano' : 'em_andamento' } }}",
         "options": {
           "responseCode": 200
         }
@@ -1057,6 +1057,6 @@
     }
   ],
   "triggerCount": 1,
-  "updatedAt": "2026-06-19T00:00:00.000Z",
-  "versionId": "clinica-sorriso-feliz-whatsapp-ai-agent-v1"
+  "updatedAt": "2026-06-21T00:00:00.000Z",
+  "versionId": "clinica-sorriso-feliz-whatsapp-ai-agent-v2-sentiment"
 }

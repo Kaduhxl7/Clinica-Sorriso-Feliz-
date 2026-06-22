@@ -1,4 +1,4 @@
-import type { ConversationIntent, ConversationStatus } from "@/lib/types";
+import type { ConversationIntent, ConversationSentiment, ConversationStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const statusLabels: Record<ConversationStatus, string> = {
@@ -12,6 +12,12 @@ const intentLabels: Record<ConversationIntent, string> = {
   ORCAMENTO: "Orcamento",
   DUVIDA: "Duvida",
   HUMANO: "Humano",
+};
+
+const sentimentLabels: Record<ConversationSentiment, string> = {
+  POSITIVO: "Positivo",
+  NEUTRO: "Neutro",
+  NEGATIVO: "Negativo",
 };
 
 export function StatusBadge({ status }: { status: ConversationStatus }) {
@@ -45,6 +51,25 @@ export function IntentBadge({ intent }: { intent: ConversationIntent | null }) {
       )}
     >
       {intentLabels[intent]}
+    </span>
+  );
+}
+
+export function SentimentBadge({ sentiment }: { sentiment: ConversationSentiment | null }) {
+  if (!sentiment) {
+    return <span className="text-xs text-muted">Sem sentimento</span>;
+  }
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
+        sentiment === "POSITIVO" && "bg-emerald-50 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200",
+        sentiment === "NEUTRO" && "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+        sentiment === "NEGATIVO" && "bg-rose-50 text-rose-800 dark:bg-rose-400/10 dark:text-rose-200",
+      )}
+    >
+      {sentimentLabels[sentiment]}
     </span>
   );
 }

@@ -3,11 +3,12 @@ import { AppShell } from "@/components/app-shell";
 import { ConversationFilters } from "@/components/conversation-filters";
 import { ConversationsTable } from "@/components/conversations-table";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import type { ConversationIntent, ConversationStatus } from "@/lib/types";
+import type { ConversationIntent, ConversationSentiment, ConversationStatus } from "@/lib/types";
 import { getConversations, requireUser } from "@/lib/supabase/queries";
 
 const validStatuses: ConversationStatus[] = ["em_andamento", "aguardando_humano", "encerrada"];
 const validIntents: ConversationIntent[] = ["AGENDAMENTO", "ORCAMENTO", "DUVIDA", "HUMANO"];
+const validSentiments: ConversationSentiment[] = ["POSITIVO", "NEUTRO", "NEGATIVO"];
 
 type ConversationsPageProps = {
   searchParams?: Promise<{
@@ -15,6 +16,7 @@ type ConversationsPageProps = {
     keyword?: string;
     status?: string;
     intent?: string;
+    sentiment?: string;
     dateFrom?: string;
     dateTo?: string;
     humanOnly?: string;
@@ -32,11 +34,15 @@ export default async function ConversationsPage({ searchParams }: ConversationsP
   const intent = validIntents.includes(filters.intent as ConversationIntent)
     ? (filters.intent as ConversationIntent)
     : undefined;
+  const sentiment = validSentiments.includes(filters.sentiment as ConversationSentiment)
+    ? (filters.sentiment as ConversationSentiment)
+    : undefined;
   const conversations = await getConversations({
     phone: filters.phone?.trim() || undefined,
     keyword: filters.keyword?.trim() || undefined,
     status,
     intent,
+    sentiment,
     dateFrom: filters.dateFrom?.trim() || undefined,
     dateTo: filters.dateTo?.trim() || undefined,
     humanOnly: filters.humanOnly === "true",
@@ -49,7 +55,7 @@ export default async function ConversationsPage({ searchParams }: ConversationsP
         <p className="text-sm font-medium text-primary">Caixa de entrada</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Conversas</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Busque por telefone, mensagem, intencao, status, periodo e acompanhe novas mensagens em tempo real.
+          Busque por telefone, mensagem, intencao, sentimento, status, periodo e acompanhe novas mensagens em tempo real.
         </p>
       </div>
 
@@ -59,6 +65,7 @@ export default async function ConversationsPage({ searchParams }: ConversationsP
           keyword={filters.keyword}
           status={status}
           intent={intent}
+          sentiment={sentiment}
           dateFrom={filters.dateFrom}
           dateTo={filters.dateTo}
           humanOnly={filters.humanOnly === "true"}

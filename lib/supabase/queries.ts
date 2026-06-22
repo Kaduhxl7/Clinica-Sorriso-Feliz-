@@ -2,11 +2,13 @@ import type {
   Conversation,
   ConversationIntent,
   ConversationMetric,
+  ConversationSentiment,
   ConversationStatus,
   DashboardStats,
   Message,
 } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { sentimentValues } from "@/lib/sentiment";
 
 const statusValues: ConversationStatus[] = ["em_andamento", "aguardando_humano", "encerrada"];
 const intentValues: Array<ConversationIntent | "SEM_INTENCAO"> = [
@@ -16,8 +18,12 @@ const intentValues: Array<ConversationIntent | "SEM_INTENCAO"> = [
   "HUMANO",
   "SEM_INTENCAO",
 ];
+const sentimentChartValues: Array<ConversationSentiment | "SEM_SENTIMENTO"> = [
+  ...sentimentValues,
+  "SEM_SENTIMENTO",
+];
 
-type ConversationStatsRow = Pick<Conversation, "id" | "status" | "intent" | "created_at">;
+type ConversationStatsRow = Pick<Conversation, "id" | "status" | "intent" | "sentiment" | "created_at">;
 type MessageStatsRow = Pick<Message, "created_at">;
 
 function sanitizeSearchTerm(value: string) {
@@ -41,7 +47,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     supabase.from("messages").select("id", { count: "exact", head: true }),
     supabase
       .from("conversations")
-      .select("id,status,intent,created_at")
+      .select("id,status,intent,sentiment,created_at")
       .order("created_at", { ascending: false })
       .limit(5000),
     supabase.from("messages").select("created_at").order("created_at", { ascending: false }).limit(10000),
@@ -56,6 +62,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const messagesByDayMap = new Map<string, number>();
   const byIntentMap = new Map<string, number>();
   const byStatusMap = new Map<string, number>();
+  const bySentimentMap = new Map<string, number>();
 
   const conversationRows = (conversations.data ?? []) as ConversationStatsRow[];
   const sortedConversationRows = [...conversationRows].sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -65,6 +72,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     byDayMap.set(day, (byDayMap.get(day) ?? 0) + 1);
     byIntentMap.set(row.intent ?? "SEM_INTENCAO", (byIntentMap.get(row.intent ?? "SEM_INTENCAO") ?? 0) + 1);
     byStatusMap.set(row.status, (byStatusMap.get(row.status) ?? 0) + 1);
+    bySentimentMap.set(
+      row.sentiment ?? "SEM_SENTIMENTO",
+      (bySentimentMap.get(row.sentiment ?? "SEM_SENTIMENTO") ?? 0) + 1,
+    );
   }
 
   for (const row of ((messages.data ?? []) as MessageStatsRow[])) {
@@ -95,6 +106,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     growthByDay: sortedConversationRows.length === 0 ? [] : growthByDay,
     byIntent: intentValues.map((name) => ({ name, value: byIntentMap.get(name) ?? 0 })),
     byStatus: statusValues.map((name) => ({ name, value: byStatusMap.get(name) ?? 0 })),
+    bySentiment: sentimentChartValues.map((name) => ({ name, value: bySentimentMap.get(name) ?? 0 })),
+    positiveConversations: bySentimentMap.get("POSITIVO") ?? 0,
+    neutralConversations: bySentimentMap.get("NEUTRO") ?? 0,
+    negativeConversations: bySentimentMap.get("NEGATIVO") ?? 0,
   };
 }
 
@@ -103,6 +118,7 @@ export async function getConversations(params: {
   keyword?: string;
   status?: ConversationStatus;
   intent?: ConversationIntent;
+  sentiment?: ConversationSentiment;
   dateFrom?: string;
   dateTo?: string;
   humanOnly?: boolean;
@@ -140,6 +156,10 @@ export async function getConversations(params: {
 
   if (params.intent) {
     query = query.eq("intent", params.intent);
+  }
+
+  if (params.sentiment) {
+    query = query.eq("sentiment", params.sentiment);
   }
 
   if (params.dateFrom) {

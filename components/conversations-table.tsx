@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Conversation } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { HumanAttentionBadge, IntentBadge, StatusBadge } from "@/components/status-badge";
+import { HumanAttentionBadge, IntentBadge, SentimentBadge, StatusBadge } from "@/components/status-badge";
 
 export function ConversationsTable({ conversations }: { conversations: Conversation[] }) {
   if (conversations.length === 0) {
@@ -22,6 +22,7 @@ export function ConversationsTable({ conversations }: { conversations: Conversat
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Paciente</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Status</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Intencao</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Sentimento</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Atencao</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Ultima mensagem</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">Atualizada</th>
@@ -41,6 +42,9 @@ export function ConversationsTable({ conversations }: { conversations: Conversat
                 </td>
                 <td className="px-4 py-4">
                   <IntentBadge intent={conversation.intent} />
+                </td>
+                <td className="px-4 py-4">
+                  <SentimentBadge sentiment={conversation.sentiment} />
                 </td>
                 <td className="px-4 py-4">
                   <HumanAttentionBadge status={conversation.status} intent={conversation.intent} />

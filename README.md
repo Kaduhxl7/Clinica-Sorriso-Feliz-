@@ -31,12 +31,13 @@ Main responsibilities:
 
 - WhatsApp webhook workflow for Evolution API.
 - Gemini intent classification: `AGENDAMENTO`, `ORCAMENTO`, `DUVIDA`, `HUMANO`.
+- Gemini sentiment classification: `POSITIVO`, `NEUTRO`, `NEGATIVO`.
 - Conversation status tracking: `em_andamento`, `aguardando_humano`, `encerrada`.
 - Conversation memory loaded from Supabase before the AI response.
 - Automatic WhatsApp response through Evolution API.
 - Dashboard metrics: total conversations, total messages, conversations by day.
-- Advanced analytics: intent distribution, status distribution, messages by day, conversation growth.
-- Conversation inbox with search by phone, message keyword, status, intent, date range, and human-only mode.
+- Advanced analytics: intent distribution, sentiment distribution, status distribution, messages by day, conversation growth.
+- Conversation inbox with search by phone, message keyword, status, intent, sentiment, date range, and human-only mode.
 - Human attention indicator for `HUMANO` intent and `aguardando_humano` status.
 - Supabase Realtime auto-refresh for conversations, messages, and metrics.
 - Supabase Auth login.
@@ -100,12 +101,20 @@ Run the SQL files in order in Supabase:
 1. `supabase/migrations/001_ai_whatsapp_agent_schema.sql`
 2. `supabase/migrations/002_enable_realtime_for_dashboard.sql`
 3. `supabase/migrations/003_grant_agent_dashboard_permissions.sql`
+4. `supabase/migrations/004_add_conversation_sentiment.sql`
 
 Core tables:
 
 - `conversations`: one active or historical WhatsApp conversation per patient/instance.
 - `messages`: inbound and outbound messages, including AI metadata and intent.
 - `conversation_metrics`: aggregate metrics for dashboard and operational review.
+
+Sentiment persistence:
+
+- `conversation_sentiment` enum stores `POSITIVO`, `NEUTRO`, or `NEGATIVO`.
+- `conversations.sentiment` and `conversations.sentiment_confidence` store the latest conversation-level classification.
+- `messages.sentiment` and `messages.sentiment_confidence` store the sentiment associated with each interaction.
+- Sentiment columns are nullable so old rows remain valid and continue rendering as `Sem sentimento`.
 
 Security model:
 
@@ -127,8 +136,17 @@ n8n/workflows/clinica-sorriso-feliz-whatsapp-ai-agent.json
 Required runtime path:
 
 ```text
-Evolution API -> n8n Webhook -> Supabase memory lookup -> Gemini classification -> Gemini response -> Evolution sendText -> Supabase persistence
+Evolution API -> n8n Webhook -> Supabase memory lookup -> Gemini intent/sentiment classification -> Gemini response -> Evolution sendText -> Supabase persistence
 ```
+
+Sentiment pipeline:
+
+1. n8n loads recent message history from Supabase.
+2. Gemini returns `intent`, `confidence`, `sentiment`, `sentiment_confidence`, `needs_human`, `handoff_reason`, and `summary`.
+3. n8n validates allowed sentiment values and falls back to `NEUTRO` if Gemini returns an unknown value.
+4. n8n stores intent and sentiment in the inbound message.
+5. n8n updates the conversation with the latest intent, sentiment, summary, and handoff status.
+6. The dashboard reads sentiment from Supabase and exposes counters, badges, filters, and charts.
 
 Webhook endpoint in local n8n:
 
@@ -241,7 +259,8 @@ The n8n workflow is intentionally run outside Vercel because it owns server-side
 
 - Supabase service role key is restricted to n8n because dashboard code runs in a user-facing web app.
 - Realtime refresh is debounced to avoid excessive route refreshes when n8n inserts multiple rows in sequence.
-- Sentiment analysis was not enabled by default because adding writes for new sentiment columns would require migrating the production database first. This can be added safely as a follow-up migration and workflow version.
+- Sentiment analysis is implemented as migration `004` with nullable fields to preserve compatibility with historical data.
+- The n8n workflow v2 writes sentiment fields, so apply migration `004` before importing or activating the updated workflow.
 - Tests validate the critical JSON workflow and dashboard capabilities without adding heavy testing infrastructure.
 
 ## Vibe Coding Journal
@@ -274,6 +293,7 @@ Failures encountered and fixes:
 | Gemini integration | Implemented | classification and response nodes |
 | Conversation memory | Implemented | Supabase history lookup and memory context node |
 | Intent classification | Implemented | Gemini classification and Supabase persistence |
+| Sentiment classification | Implemented | Gemini classification, migration `004`, dashboard badges, filters, metrics, and chart |
 | Real database | Implemented | Supabase migrations and dashboard queries |
 | Dashboard metrics | Implemented | `app/page.tsx`, `components/dashboard-charts.tsx` |
 | Conversation list/detail | Implemented | `app/conversations` pages |
