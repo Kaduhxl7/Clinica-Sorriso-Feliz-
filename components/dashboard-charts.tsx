@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardStats } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { formatDay } from "@/lib/utils";
 
 const statusColors: Record<string, string> = {
@@ -76,7 +77,7 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <ChartEmptyState text="As conversas aparecerao aqui quando o agente receber mensagens." />
+            <ChartEmptyState title="Sem conversas no periodo" text="As conversas aparecerao aqui quando o agente receber mensagens." />
           )}
         </div>
       </ChartCard>
@@ -96,7 +97,7 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <ChartEmptyState text="Nenhum status calculado ainda." />
+            <ChartEmptyState title="Sem status disponivel" text="Nenhum status foi calculado ainda." />
           )}
         </div>
       </ChartCard>
@@ -118,14 +119,14 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <ChartEmptyState text="As intencoes classificadas pelo Gemini aparecerao aqui." />
+            <ChartEmptyState title="Sem intencoes classificadas" text="As intencoes classificadas pelo Gemini aparecerao aqui." />
           )}
         </div>
       </ChartCard>
 
       <ChartCard title="Sentimento" description="Distribuicao emocional classificada pelo Gemini" className="xl:col-span-3">
         <div className="h-80">
-          {hasChartData(stats.bySentiment) ? (
+          {hasChartData(stats.bySentiment, "SEM_SENTIMENTO") ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.bySentiment} layout="vertical" margin={{ left: 24, right: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgb(var(--border))" />
@@ -140,7 +141,10 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <ChartEmptyState text="Sentimentos serao exibidos apos aplicar a migration e receber novas mensagens." />
+            <ChartEmptyState
+              title="Nenhum sentimento classificado"
+              text="Quando o Gemini classificar conversas como positivas, neutras ou negativas, a distribuicao aparece aqui."
+            />
           )}
         </div>
       </ChartCard>
@@ -158,7 +162,7 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <ChartEmptyState text="O volume diario aparece apos o agente salvar mensagens." />
+            <ChartEmptyState title="Sem mensagens salvas" text="O volume diario aparece apos o agente salvar mensagens." />
           )}
         </div>
       </ChartCard>
@@ -176,7 +180,7 @@ export function DashboardCharts({ stats }: { stats: DashboardStats }) {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <ChartEmptyState text="O crescimento fica disponivel quando houver conversas." />
+            <ChartEmptyState title="Sem crescimento ainda" text="O crescimento fica disponivel quando houver conversas." />
           )}
         </div>
       </ChartCard>
@@ -238,14 +242,10 @@ function ChartTooltip({
   );
 }
 
-function ChartEmptyState({ text }: { text: string }) {
-  return (
-    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-muted/40 px-6 text-center text-sm text-muted">
-      {text}
-    </div>
-  );
+function ChartEmptyState({ title, text }: { title: string; text: string }) {
+  return <EmptyState icon="chart" title={title} description={text} compact />;
 }
 
-function hasChartData(data: Array<{ value?: number; total?: number }>) {
-  return data.some((item) => (item.value ?? item.total ?? 0) > 0);
+function hasChartData(data: Array<{ name?: string; value?: number; total?: number }>, excludedName?: string) {
+  return data.some((item) => item.name !== excludedName && (item.value ?? item.total ?? 0) > 0);
 }

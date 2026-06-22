@@ -1,23 +1,21 @@
 import Link from "next/link";
-import { ArrowUpRight, Inbox } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { Conversation } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { formatDateTime } from "@/lib/utils";
 import { HumanAttentionBadge, IntentBadge, SentimentBadge, StatusBadge } from "@/components/status-badge";
 
 export function ConversationsTable({ conversations }: { conversations: Conversation[] }) {
   if (conversations.length === 0) {
     return (
-      <section className="rounded-lg border border-dashed border-border bg-surface p-8 text-center shadow-soft">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-muted">
-          <Inbox className="h-5 w-5" />
-        </div>
-        <p className="mt-4 font-medium">Nenhuma conversa encontrada</p>
-        <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted">
-          Ajuste os filtros ou aguarde novas mensagens do WhatsApp chegarem pelo workflow da Evolution.
-        </p>
-        <Link href="/conversations" className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">
-          Ver todas as conversas
-        </Link>
+      <section className="rounded-lg border border-border bg-surface p-3 shadow-soft">
+        <EmptyState
+          icon="inbox"
+          title="Nenhuma conversa encontrada"
+          description="Ajuste os filtros ou aguarde novas mensagens do WhatsApp chegarem pelo workflow da Evolution."
+          actionHref="/conversations"
+          actionLabel="Ver todas as conversas"
+        />
       </section>
     );
   }
