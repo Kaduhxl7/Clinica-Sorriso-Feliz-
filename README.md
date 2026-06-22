@@ -48,9 +48,13 @@ Main responsibilities:
 ## Project Structure
 
 ```text
+.github/
+  workflows/ci.yml
+.env.example
 app/
   conversations/
     [id]/page.tsx
+    loading.tsx
     page.tsx
   login/page.tsx
   actions.ts
@@ -66,11 +70,15 @@ components/
   conversation-thread.tsx
   conversations-table.tsx
   dashboard-charts.tsx
+  empty-state.tsx
   metric-card.tsx
+  operational-alert.tsx
   realtime-refresh.tsx
+  sidebar-nav-link.tsx
   status-badge.tsx
   theme-provider.tsx
   theme-toggle.tsx
+docker-compose.yml
 docs/
   database.md
   erd-and-n8n-workflow.md
@@ -83,14 +91,17 @@ lib/
   supabase/middleware.ts
   supabase/queries.ts
   supabase/server.ts
+  sentiment.ts
   types.ts
   utils.ts
+middleware.ts
 n8n/
   workflows/clinica-sorriso-feliz-whatsapp-ai-agent.json
 supabase/
   migrations/
 tests/
   dashboard.test.mjs
+  sentiment.test.mjs
   workflow.test.mjs
 ```
 
@@ -163,6 +174,8 @@ http://host.docker.internal:5678/webhook/evolution/whatsapp/incoming
 See `docs/n8n-workflow-setup.md` and `docs/final-local-runtime-setup.md` for import and validation steps.
 
 ## Environment Variables
+
+Use `.env.example` as the canonical local template. Never commit a real `.env` or `.env.local`.
 
 Dashboard `.env.local`:
 
