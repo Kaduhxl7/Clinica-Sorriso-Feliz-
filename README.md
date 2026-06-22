@@ -2,7 +2,7 @@
 
 AI WhatsApp Agent and operations dashboard for a dental clinic.
 
-- Dashboard publico: odonto-g20wjtdi5-kaduhxl7s-projects.vercel.app
+- Dashboard publico: [odonto-g20wjtdi5-kaduhxl7s-projects.vercel.app](https://odonto-g20wjtdi5-kaduhxl7s-projects.vercel.app)
 - Repository: https://github.com/Kaduhxl7/Clinica-Sorriso-Feliz-
 
 No mock data is used. The dashboard reads only from Supabase tables populated by the n8n WhatsApp workflow.
