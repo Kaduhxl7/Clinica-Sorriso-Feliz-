@@ -21,13 +21,15 @@ export default async function ConversationDetailsPage({ params }: ConversationDe
   return (
     <AppShell userEmail={user.email}>
       <RealtimeRefresh conversationId={id} />
-      <div className="mb-6">
+      <div className="mb-6 rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-6">
         <Link href="/conversations" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" />
           Voltar para conversas
         </Link>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Detalhes da conversa</h1>
-        <p className="mt-2 text-sm text-muted">Historico completo, status, intencao e metricas da conversa.</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+          Historico completo, status, intencao, sentimento e metricas operacionais da conversa.
+        </p>
       </div>
 
       <ConversationThread conversation={conversation} messages={messages} metrics={metrics} />

@@ -12,26 +12,36 @@ export default async function DashboardPage() {
 
   const stats = await getDashboardStats();
   const awaitingHuman = stats.byStatus.find((item) => item.name === "aguardando_humano")?.value ?? 0;
+  const sentimentTotal = stats.positiveConversations + stats.neutralConversations + stats.negativeConversations;
+  const negativeRate = sentimentTotal > 0 ? Math.round((stats.negativeConversations / sentimentTotal) * 100) : 0;
 
   return (
     <AppShell userEmail={user.email}>
       <RealtimeRefresh />
-      <div className="mb-6">
-        <p className="text-sm font-medium text-primary">Operacao em tempo real</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
-          Dados reais do agente de WhatsApp, atualizados pelo Supabase Realtime.
-        </p>
+      <div className="mb-6 rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Operacao em tempo real</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Central de atendimento WhatsApp</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+              Monitore volume, qualidade percebida, intencoes e conversas que precisam de uma pessoa da equipe.
+            </p>
+          </div>
+          <div className="rounded-lg bg-surface-muted px-4 py-3 text-sm">
+            <p className="font-medium">Saude operacional</p>
+            <p className="mt-1 text-muted">{negativeRate}% negativas entre conversas com sentimento classificado</p>
+          </div>
+        </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Total de conversas" value={stats.totalConversations} icon={MessageCircle} />
-        <MetricCard title="Total de mensagens" value={stats.totalMessages} icon={MessagesSquare} />
-        <MetricCard title="Aguardando humano" value={awaitingHuman} icon={UserRoundCheck} />
-        <MetricCard title="Eventos monitorados" value="Realtime" helper="conversations, messages, metrics" icon={Activity} />
-        <MetricCard title="Sentimento positivo" value={stats.positiveConversations} icon={Smile} />
-        <MetricCard title="Sentimento neutro" value={stats.neutralConversations} icon={Meh} />
-        <MetricCard title="Sentimento negativo" value={stats.negativeConversations} icon={Frown} />
+        <MetricCard title="Conversas" value={stats.totalConversations} helper="Threads reais registradas no Supabase" icon={MessageCircle} />
+        <MetricCard title="Mensagens" value={stats.totalMessages} helper="Entradas e respostas do agente" icon={MessagesSquare} tone="info" />
+        <MetricCard title="Aguardando humano" value={awaitingHuman} helper="Priorize estes atendimentos agora" icon={UserRoundCheck} tone="warning" />
+        <MetricCard title="Realtime" value="Ativo" helper="conversations, messages, metrics" icon={Activity} tone="success" />
+        <MetricCard title="Positivas" value={stats.positiveConversations} helper="Pacientes satisfeitos ou tranquilos" icon={Smile} tone="success" />
+        <MetricCard title="Neutras" value={stats.neutralConversations} helper="Conversas objetivas ou informativas" icon={Meh} />
+        <MetricCard title="Negativas" value={stats.negativeConversations} helper="Acompanhe possiveis atritos" icon={Frown} tone="danger" />
       </div>
 
       <DashboardCharts stats={stats} />

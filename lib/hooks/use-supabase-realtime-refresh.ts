@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -10,15 +10,33 @@ type RealtimeRefreshOptions = {
 
 export function useSupabaseRealtimeRefresh(options: RealtimeRefreshOptions = {}) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingHiddenRefresh = useRef(false);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const channel = supabase.channel(`dashboard-refresh-${options.conversationId ?? "all"}`);
     const refresh = () => {
+      if (document.visibilityState === "hidden") {
+        pendingHiddenRefresh.current = true;
+        return;
+      }
+
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
-      refreshTimer.current = setTimeout(() => router.refresh(), 300);
+      refreshTimer.current = setTimeout(() => {
+        startTransition(() => router.refresh());
+      }, 300);
     };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible" && pendingHiddenRefresh.current) {
+        pendingHiddenRefresh.current = false;
+        refresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", refreshOnVisible);
 
     channel.on(
       "postgres_changes",
@@ -46,7 +64,8 @@ export function useSupabaseRealtimeRefresh(options: RealtimeRefreshOptions = {})
 
     return () => {
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
       supabase.removeChannel(channel);
     };
-  }, [options.conversationId, router]);
+  }, [options.conversationId, router, startTransition]);
 }

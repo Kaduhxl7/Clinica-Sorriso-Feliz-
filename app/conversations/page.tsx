@@ -51,12 +51,20 @@ export default async function ConversationsPage({ searchParams }: ConversationsP
   return (
     <AppShell userEmail={user.email}>
       <RealtimeRefresh />
-      <div className="mb-6">
-        <p className="text-sm font-medium text-primary">Caixa de entrada</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Conversas</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
-          Busque por telefone, mensagem, intencao, sentimento, status, periodo e acompanhe novas mensagens em tempo real.
-        </p>
+      <div className="mb-6 rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Caixa de entrada</p>
+        <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Conversas</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+              Busque por telefone, mensagem, intencao, sentimento, status, periodo e acompanhe novas mensagens em tempo real.
+            </p>
+          </div>
+          <div className="rounded-lg bg-surface-muted px-4 py-3 text-sm">
+            <p className="font-medium">{conversations.length} conversas exibidas</p>
+            <p className="mt-1 text-muted">Resultado dos filtros atuais</p>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-5">

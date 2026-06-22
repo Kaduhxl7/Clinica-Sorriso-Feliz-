@@ -20,6 +20,7 @@ const config: Config = {
       },
       boxShadow: {
         soft: "0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.1)",
+        elevated: "0 16px 40px rgb(15 23 42 / 0.10)",
       },
     },
   },

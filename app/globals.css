@@ -11,6 +11,7 @@
   --surface-muted: 241 245 249;
   --primary: 14 116 144;
   --accent: 6 182 212;
+  --ring: 103 232 249;
 }
 
 .dark {
@@ -22,6 +23,7 @@
   --surface-muted: 30 41 59;
   --primary: 34 211 238;
   --accent: 103 232 249;
+  --ring: 34 211 238;
 }
 
 * {
@@ -30,9 +32,12 @@
 
 body {
   min-height: 100vh;
-  background: rgb(var(--background));
+  background:
+    radial-gradient(circle at top left, rgb(var(--accent) / 0.08), transparent 34rem),
+    rgb(var(--background));
   color: rgb(var(--foreground));
   color-scheme: light;
+  text-rendering: optimizeLegibility;
 }
 
 .dark body {
@@ -42,4 +47,24 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.28);
+}
+
+*:focus-visible {
+  outline: 2px solid rgb(var(--ring));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
