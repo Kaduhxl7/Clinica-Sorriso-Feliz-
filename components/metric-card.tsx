@@ -1,7 +1,8 @@
-import type { LucideIcon } from "lucide-react";
+import { Activity, Frown, Meh, MessageCircle, MessagesSquare, Smile, UserRoundCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MetricTone = "default" | "success" | "warning" | "danger" | "info";
+export type MetricIcon = "activity" | "frown" | "meh" | "message" | "messages" | "smile" | "user-check";
 
 const toneClasses: Record<MetricTone, string> = {
   default: "bg-cyan-50 text-primary dark:bg-cyan-400/10",
@@ -11,19 +12,31 @@ const toneClasses: Record<MetricTone, string> = {
   info: "bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-200",
 };
 
+const icons = {
+  activity: Activity,
+  frown: Frown,
+  meh: Meh,
+  message: MessageCircle,
+  messages: MessagesSquare,
+  smile: Smile,
+  "user-check": UserRoundCheck,
+};
+
 export function MetricCard({
   title,
   value,
   helper,
-  icon: Icon,
+  icon,
   tone = "default",
 }: {
   title: string;
   value: number | string;
   helper?: string;
-  icon: LucideIcon;
+  icon: MetricIcon;
   tone?: MetricTone;
 }) {
+  const Icon = icons[icon];
+
   return (
     <section className="rounded-lg border border-border bg-surface p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-elevated">
       <div className="flex items-start justify-between gap-4">

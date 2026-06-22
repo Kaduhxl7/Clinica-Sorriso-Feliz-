@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Activity, Frown, Meh, MessageCircle, MessagesSquare, Smile, UserRoundCheck } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { MetricCard } from "@/components/metric-card";
@@ -35,13 +34,13 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Conversas" value={stats.totalConversations} helper="Threads reais registradas no Supabase" icon={MessageCircle} />
-        <MetricCard title="Mensagens" value={stats.totalMessages} helper="Entradas e respostas do agente" icon={MessagesSquare} tone="info" />
-        <MetricCard title="Aguardando humano" value={awaitingHuman} helper="Priorize estes atendimentos agora" icon={UserRoundCheck} tone="warning" />
-        <MetricCard title="Realtime" value="Ativo" helper="conversations, messages, metrics" icon={Activity} tone="success" />
-        <MetricCard title="Positivas" value={stats.positiveConversations} helper="Pacientes satisfeitos ou tranquilos" icon={Smile} tone="success" />
-        <MetricCard title="Neutras" value={stats.neutralConversations} helper="Conversas objetivas ou informativas" icon={Meh} />
-        <MetricCard title="Negativas" value={stats.negativeConversations} helper="Acompanhe possiveis atritos" icon={Frown} tone="danger" />
+        <MetricCard title="Conversas" value={stats.totalConversations} helper="Threads reais registradas no Supabase" icon="message" />
+        <MetricCard title="Mensagens" value={stats.totalMessages} helper="Entradas e respostas do agente" icon="messages" tone="info" />
+        <MetricCard title="Aguardando humano" value={awaitingHuman} helper="Priorize estes atendimentos agora" icon="user-check" tone="warning" />
+        <MetricCard title="Realtime" value="Ativo" helper="conversations, messages, metrics" icon="activity" tone="success" />
+        <MetricCard title="Positivas" value={stats.positiveConversations} helper="Pacientes satisfeitos ou tranquilos" icon="smile" tone="success" />
+        <MetricCard title="Neutras" value={stats.neutralConversations} helper="Conversas objetivas ou informativas" icon="meh" />
+        <MetricCard title="Negativas" value={stats.negativeConversations} helper="Acompanhe possiveis atritos" icon="frown" tone="danger" />
       </div>
 
       <DashboardCharts stats={stats} />
