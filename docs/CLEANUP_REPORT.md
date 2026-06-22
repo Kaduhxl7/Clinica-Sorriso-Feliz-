@@ -55,7 +55,7 @@ The cleanup intentionally favored stability over aggressive deletion. Items that
 - `docker-compose.yml`: local n8n and PostgreSQL runtime.
 - `.github/workflows/ci.yml`: CI validation.
 - `docs/*.md`: setup, database, ERD, n8n, and local runtime documentation.
-- `.env.example`: local environment template.
+- `env/.env.example`: local environment template.
 
 ### Tests
 
@@ -85,9 +85,9 @@ Reason: moving modules would increase import churn and deployment risk without i
 
 ## Files Added or Updated
 
-- Updated `.env.example` as the canonical safe local environment template.
+- Updated `env/.env.example` as the canonical safe local environment template.
 - Updated `README.md` project structure so it matches the current repository.
-- Added `CLEANUP_REPORT.md` to document audit decisions, retained risks, and validation results.
+- Moved `CLEANUP_REPORT.md` into `docs/` to keep delivery documentation together.
 
 ## Architectural Improvements
 

@@ -50,7 +50,6 @@ Main responsibilities:
 ```text
 .github/
   workflows/ci.yml
-.env.example
 app/
   conversations/
     [id]/page.tsx
@@ -80,11 +79,14 @@ components/
   theme-toggle.tsx
 docker-compose.yml
 docs/
+  CLEANUP_REPORT.md
   database.md
   erd-and-n8n-workflow.md
   final-local-runtime-setup.md
   local-n8n-architecture.md
   n8n-workflow-setup.md
+env/
+  .env.example
 lib/
   hooks/use-supabase-realtime-refresh.ts
   supabase/client.ts
@@ -175,7 +177,7 @@ See `docs/n8n-workflow-setup.md` and `docs/final-local-runtime-setup.md` for imp
 
 ## Environment Variables
 
-Use `.env.example` as the canonical local template. Never commit a real `.env` or `.env.local`.
+Use `env/.env.example` as the canonical local template. Never commit a real `.env` or `.env.local`.
 
 Dashboard `.env.local`:
 

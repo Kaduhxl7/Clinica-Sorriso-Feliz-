@@ -3,7 +3,7 @@
 Created files:
 
 - `docker-compose.yml`: local n8n stack with PostgreSQL, persistent volumes, health checks, restart policies, and workflow folder mount.
-- `.env.example`: complete environment variable contract for local n8n, PostgreSQL, Evolution API, Supabase, Gemini, and the Next.js dashboard.
+- `env/.env.example`: complete environment variable contract for local n8n, PostgreSQL, Evolution API, Supabase, Gemini, and the Next.js dashboard.
 - `docs/local-n8n-architecture.md`: startup, import, and validation guide.
 
 Existing workflow to import:
@@ -56,7 +56,7 @@ Network:
 
 # SECTION 3 - .env.example
 
-The complete environment template is at `.env.example`.
+The complete environment template is at `env/.env.example`.
 
 Required variables for n8n:
 
@@ -111,7 +111,7 @@ docker rm n8n
 2. Create the real local env file:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item env\.env.example env\.env
 ```
 
 3. Edit `.env` and set real values:
