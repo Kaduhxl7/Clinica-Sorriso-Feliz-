@@ -1,5 +1,9 @@
 # Clinica Sorriso Feliz
 
+User Dashboard:
+- email:kaduhxl7@gmail.com
+- senha:123456
+
 AI WhatsApp Agent and operations dashboard for a dental clinic.
 
 - Dashboard publico:[ odonto-2a26x2ogb-kaduhxl7s-projects.vercel.app](https://odonto-2a26x2ogb-kaduhxl7s-projects.vercel.app)
