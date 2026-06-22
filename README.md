@@ -2,7 +2,7 @@
 
 User Dashboard:
 - email:kaduhxl7@gmail.com
-- senha:123456
+- password:123456
 
 AI WhatsApp Agent and operations dashboard for a dental clinic.
 
